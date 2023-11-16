@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meczyki</title>
+</head>
+<body>
+  <script>
+    const xhr = new XMLHttpRequest();
+
+    xhr.open("GET", "http://strims.top", true);
+    xhr.responseType = "document";
+
+    xhr.onload = function() {
+      if (xhr.readyState === 4 && xhr.status === 200) {
+        const items = xhr.responseXML.querySelectorAll("div#container #belka td:has(a.pilkanozna)");
+        const validTeams = [
+          "Manchester City",
+          "Manchester United",
+          "Liverpool",
+          "Chelsea",
+          "Arsenal",
+          "Tottenham",
+          "Aston Villa",
+          "Brighton",
+          "Bayern",
+          "Real Madryt",
+          "FC Barcelona",
+          "Napoli",
+          "Inter",
+          "AC Milan",
+          "Juventus",
+          "Borussia",
+          "PSG",
+          "Polska",
+          "Hiszpania"
+        ];
+
+        const data = Array.from(items)
+          .map((item) => {
+            const timestamp = item.innerText.slice(0, 5);
+            const link = item.querySelector(".pilkanozna");
+            const href = link.getAttribute("href");
+            const title = link.innerText;
+        
+            return { timestamp, href, title };
+          })
+          .filter(({ title }) => validTeams.some((teamName) => title.includes(teamName)));
+        }
+
+        console.log(data);
+    }
+
+    xhr.onerror = function() {
+      console.error(xhr.status, xhr.statusText);
+    }
+
+    xhr.send();
+  </script>
+</body>
+</html>
