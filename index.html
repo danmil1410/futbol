@@ -1,63 +1,142 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
-  <title>Meczyki</title>
-</head>
-<body>
-  <script>
-    const xhr = new XMLHttpRequest();
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+    <title>Meczyki</title>
 
-    xhr.open("GET", "http://strims.top", true);
-    xhr.responseType = "document";
+    <style>
+      .body {
+        margin: 0;
 
-    xhr.onload = function() {
-      if (xhr.readyState === 4 && xhr.status === 200) {
-        const items = xhr.responseXML.querySelectorAll("div#container #belka td:has(a.pilkanozna)");
-        const validTeams = [
-          "Manchester City",
-          "Manchester United",
-          "Liverpool",
-          "Chelsea",
-          "Arsenal",
-          "Tottenham",
-          "Aston Villa",
-          "Brighton",
-          "Bayern",
-          "Real Madryt",
-          "FC Barcelona",
-          "Napoli",
-          "Inter",
-          "AC Milan",
-          "Juventus",
-          "Borussia",
-          "PSG",
-          "Polska",
-          "Hiszpania"
-        ];
-
-        const data = Array.from(items)
-          .map((item) => {
-            const timestamp = item.innerText.slice(0, 5);
-            const link = item.querySelector(".pilkanozna");
-            const href = link.getAttribute("href");
-            const title = link.innerText;
-        
-            return { timestamp, href, title };
-          })
-          .filter(({ title }) => validTeams.some((teamName) => title.includes(teamName)));
+        .background {
+          position: fixed;
+          background-color: #e5ebf7;
+          height: 100vh;
+          width: 100vw;
+          z-index: -1;
         }
 
-        console.log(data);
-    }
+        .table, .video {
+          display: flex;
+          flex-direction: column;
+          padding: 4rem;
+        }
 
-    xhr.onerror = function() {
-      console.error(xhr.status, xhr.statusText);
-    }
+        .table {
+          font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 
-    xhr.send();
-  </script>
-</body>
+          .table-title {
+            font-size: 6rem;
+          }
+
+          .table-link {
+            font-size: 2rem;
+            text-decoration: none;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body class="body">
+    <div class="background"></div>
+    <table class="table">
+      <thead>
+        <tr>
+          <th colspan="2" class="table-title">Meczyki</th>
+        </tr>
+      </thead>
+      <tbody id="table-body"></tbody>
+    </table>
+
+    <div id="video" class="video"></div>
+
+    <script>
+      fetchPage("http://strims.top", fetchMainPage);
+
+      function fetchPage(pageUrl, callback) {
+        const xhr = new XMLHttpRequest();
+        xhr.open(
+          "GET",
+          `https://corsproxy.io/?${encodeURIComponent(pageUrl)}`,
+          true
+        );
+        xhr.responseType = "document";
+        xhr.setRequestHeader(
+          "Content-Type",
+          "application/x-www-form-urlencoded"
+        );
+
+        xhr.onload = function () {
+          if (xhr.readyState === 4 && xhr.status === 200) {
+            callback(xhr);
+          }
+        };
+
+        xhr.onerror = function () {
+          console.error(xhr.status, xhr.statusText);
+        };
+
+        xhr.send();
+      }
+
+      function fetchMainPage(xhr) {
+        const items = xhr.responseXML.querySelectorAll(
+          "div#container #belka td:has(a.pilkanozna)"
+        );
+
+        const currentDate = new Date();
+        const currentTime = `${currentDate.getHours()}:${
+          currentDate.getMinutes() + 30
+        }`;
+
+        for (let i = 0; i < items.length; i++) {
+          const videoItemTime = items[i].innerText.slice(0, 5);
+          if (videoItemTime > currentTime) {
+            break;
+          }
+
+          const link = items[i].children.item(0);
+          const title = link.innerText;
+          const tableBody = document.getElementById("table-body");
+
+          const tableRow = document.createElement("tr");
+          const rowColumn = document.createElement("td");
+          const rowLink = document.createElement("a");
+          const rowTitle = document.createElement("span");
+
+          rowLink.classList.add("table-link");
+          rowLink.setAttribute("href", `http://strims.top${link.pathname}`);
+          rowLink.setAttribute("target", "_self");
+          rowLink.innerHTML = items[i].innerText;
+
+          rowLink.addEventListener("click", (event) => {
+            event.preventDefault();
+            fetchVideoPage(event.target.href);
+          });
+
+          rowColumn.appendChild(rowLink);
+          tableRow.appendChild(rowColumn);
+          tableBody.appendChild(tableRow);
+        }
+      }
+
+      function fetchVideoPage(pageUrl) {
+        const videoContainer = document.getElementById("video");
+        const iframe = document.createElement("iframe");
+        iframe.setAttribute("src", pageUrl);
+        iframe.setAttribute("sandbox", "allow-same-origin allow-scripts allow-top-navigation");
+        iframe.setAttribute("allow", "autoplay");
+        iframe.setAttribute("allowfullscreen", "true");
+        iframe.style.height = "0px";
+        iframe.style.width = "0px";
+
+        window.top.location = pageUrl;
+
+        videoContainer.innerHTML = "";
+        videoContainer.appendChild(iframe);
+      }
+    </script>
+  </body>
 </html>
